@@ -172,12 +172,56 @@ public class FluxCreationTests {
                 .delaySubscription(Duration.ofMillis(100));
         Flux<String> fastFlux = Flux.just("hare", "cheetah", "squirrel");
 
-        Flux<String> firstFlux = Flux.first(slowFlux, fastFlux);
+        Flux<String> firstFlux = Flux.firstWithSignal(slowFlux, fastFlux);
 
         StepVerifier.create(firstFlux)
                 .expectNext("hare")
                 .expectNext("cheetah")
                 .expectNext("squirrel")
+                .verifyComplete();
+    }
+
+    @Test
+    public void skipAFew() {
+        Flux<String> skipFlux = Flux.just("one", "two", "skip a few", "ninety nine", "one hundred")
+                .skip(3);
+
+        StepVerifier.create(skipFlux)
+                .expectNext("ninety nine", "one hundred")
+                .verifyComplete();
+    }
+
+    @Test
+    public void skipAFewSeconds() {
+        Flux<String> skipFlux = Flux.just("one", "two", "skip a few", "ninety nine", "one hundred")
+                .delayElements(Duration.ofSeconds(1))
+                .skip(Duration.ofSeconds(4));
+
+        StepVerifier.create(skipFlux)
+                .expectNext("ninety nine", "one hundred")
+                .verifyComplete();
+    }
+
+    @Test
+    public void take() {
+        Flux<String> nationalParkFlux = Flux.just(
+                        "Yellowstone", "Yosemite", "Grand Canyon",
+                        "Zion", "Grand Teton")
+                .take(3);
+        StepVerifier.create(nationalParkFlux)
+                .expectNext("Yellowstone", "Yosemite", "Grand Canyon")
+                .verifyComplete();
+    }
+
+    @Test
+    public void takeDuration() {
+        Flux<String> nationalParkFlux = Flux.just(
+                        "Yellowstone", "Yosemite", "Grand Canyon",
+                        "Zion", "Grand Teton")
+                .delayElements(Duration.ofSeconds(1))
+                .take(Duration.ofMillis(3500));
+        StepVerifier.create(nationalParkFlux)
+                .expectNext("Yellowstone", "Yosemite", "Grand Canyon")
                 .verifyComplete();
     }
 }
