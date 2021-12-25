@@ -2,12 +2,16 @@ package sia5.reactorfun;
 
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 import reactor.util.function.Tuple2;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 public class FluxCreationTests {
@@ -139,7 +143,7 @@ public class FluxCreationTests {
         StepVerifier.create(zippedFlux)
                 .expectNextMatches(p ->
                         p.getT1().equals("Garfield") &&
-                        p.getT2().equals("Lasagna"))
+                                p.getT2().equals("Lasagna"))
                 .expectNextMatches(p ->
                         p.getT1().equals("Kojak") &&
                                 p.getT2().equals("Lollipops"))
@@ -223,5 +227,87 @@ public class FluxCreationTests {
         StepVerifier.create(nationalParkFlux)
                 .expectNext("Yellowstone", "Yosemite", "Grand Canyon")
                 .verifyComplete();
+    }
+
+    @Test
+    public void filter() {
+        Flux<String> nationalParkFlux = Flux
+                .just("Yellowstone", "Yosemite", "Grand Canyon", "Zion", "Grand Teton")
+                .filter(np -> !np.contains(" "));
+
+        StepVerifier.create(nationalParkFlux)
+                .expectNext("Yellowstone", "Yosemite", "Zion")
+                .verifyComplete();
+    }
+
+    @Test
+    public void distinct() {
+        Flux<String> animalFlux = Flux
+                .just("dog", "cat", "bird", "dog", "bird", "anteater")
+                .distinct();
+
+        StepVerifier.create(animalFlux)
+                .expectNext("dog", "cat", "bird", "anteater")
+                .verifyComplete();
+    }
+
+    @Test
+    public void map() {
+        Flux<Player> playerFlux = Flux
+                .just("Michael Jordan", "Scottie Pippen", "Steve Kerr")
+                .map(name -> {
+                    String[] split = name.split("\\s");
+                    return new Player(split[0], split[1]);
+                });
+
+        StepVerifier.create(playerFlux)
+                .expectNext(new Player("Michael", "Jordan"))
+                .expectNext(new Player("Scottie", "Pippen"))
+                .expectNext(new Player("Steve", "Kerr"))
+                .verifyComplete();
+    }
+
+    @Test
+    public void flatMap() {
+        Flux<Player> playerFlux = Flux
+                .just("Michael Jordan", "Scottie Pippen", "Steve Kerr")
+                .flatMap(s -> Mono.just(s).map(p -> {
+                    String[] split = p.split("\\s");
+                    return new Player(split[0], split[1]);
+                }).subscribeOn(Schedulers.parallel()));
+
+        List<Player> playerList = Arrays.asList(
+                new Player("Michael", "Jordan"),
+                new Player("Scottie", "Pippen"),
+                new Player("Steve", "Kerr"));
+        StepVerifier.create(playerFlux)
+                .expectNextMatches(playerList::contains)
+                .expectNextMatches(playerList::contains)
+                .expectNextMatches(playerList::contains)
+                .verifyComplete();
+    }
+}
+
+class Player {
+
+    private final String firstName;
+    private final String lastName;
+
+    public Player(String firstName, String lastName) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Player player = (Player) o;
+        return Objects.equals(firstName, player.firstName) && Objects.equals(lastName, player.lastName);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(firstName, lastName);
     }
 }
