@@ -11,6 +11,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
 
@@ -320,7 +321,19 @@ public class FluxCreationTests {
 
     @Test
     public void collectMap() {
+        Flux<String> animaFlux = Flux.just("aardvark", "elephant", "koala", "eagle", "kangaroo");
+
+        Mono<Map<Character, String>> animalMapMono =
+            animaFlux.collectMap(a -> a.charAt(0));
         
+        StepVerifier.create(animalMapMono)
+            .expectNextMatches(map -> {
+                    return map.size() == 3 &&
+                    map.get('a').equals("aardvark") &&
+                    map.get('e').equals("eagle") &&
+                    map.get('k').equals("kangaroo");
+            })
+            .verifyComplete();
     }
 }
 
